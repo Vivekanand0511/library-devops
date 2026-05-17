@@ -18,7 +18,7 @@ public class LibraryApp {
     static class MyHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange t) throws IOException {
-            String response = "Library Management System is running! CI/CD Pipeline deployment successful.";
+            String response = "Welcome to the upgraded Library Sysyem V2.";
             t.sendResponseHeaders(200, response.length());
             OutputStream os = t.getResponseBody();
             os.write(response.getBytes());
