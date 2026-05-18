@@ -1,0 +1,3 @@
+Clean Code, Robert C. Martin, Checked Out
+The Pragmatic Programmer, Andrew Hunt, Available
+Design Patterns, Erich Gamma, Available
