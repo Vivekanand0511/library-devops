@@ -10,7 +10,6 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
-// Create a Book Object
 class Book {
     String title, author, status;
     public Book(String title, String author, String status) {
@@ -21,21 +20,19 @@ class Book {
 }
 
 public class LibraryApp {
-
+    // In-memory Database
     static List<Book> libraryDB = new ArrayList<>();
 
     public static void main(String[] args) throws Exception {
-
-
         HttpServer server = HttpServer.create(new InetSocketAddress(8081), 0);
         server.createContext("/", new DisplayHandler());
-        server.createContext("/upload", new UploadHandler()); // New endpoint for files
+        server.createContext("/upload", new UploadHandler());
+        server.createContext("/clear", new ClearHandler()); // New endpoint to clear data
         server.setExecutor(null); 
-        System.out.println("Library System with File Upload running on port 8081...");
+        System.out.println("Library System running on port 8081...");
         server.start();
     }
 
-    // Handles displaying the website
     static class DisplayHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange t) throws IOException {
@@ -48,19 +45,20 @@ public class LibraryApp {
                 html.append("th, td { border: 1px solid #ddd; padding: 12px; text-align: left;}");
                 html.append("th { background-color: #0056b3; color: white;}");
                 html.append(".upload-box { background: white; padding: 20px; border: 1px dashed #0056b3; width: 50%;}");
+                html.append(".clear-btn { background-color: #dc3545; color: white; padding: 5px 10px; border: none; cursor: pointer; margin-left: 10px;}");
                 html.append("</style></head><body>");
                 
                 html.append("<h1>Central Library Management System</h1>");
                 
-                // File Upload Section
                 html.append("<div class='upload-box'>");
                 html.append("<h3>Upload Book Records (.txt or .csv)</h3>");
                 html.append("<p>Format: <i>Title, Author, Status</i></p>");
                 html.append("<input type='file' id='fileInput' accept='.txt,.csv'> ");
                 html.append("<button onclick='uploadFile()'>Upload File</button>");
+                // The New Clear Button
+                html.append("<button class='clear-btn' onclick='clearDatabase()'>Clear Database</button>");
                 html.append("</div>");
 
-                // JavaScript to read the file and send it to Java backend
                 html.append("<script>");
                 html.append("function uploadFile() {");
                 html.append("  var file = document.getElementById('fileInput').files[0];");
@@ -68,13 +66,18 @@ public class LibraryApp {
                 html.append("  var reader = new FileReader();");
                 html.append("  reader.onload = function(e) {");
                 html.append("    fetch('/upload', { method: 'POST', body: e.target.result })");
-                html.append("    .then(() => window.location.reload());"); // Reload page after upload
+                html.append("    .then(() => window.location.reload());");
                 html.append("  };");
                 html.append("  reader.readAsText(file);");
                 html.append("}");
+                // The New Javascript function to trigger the clear action
+                html.append("function clearDatabase() {");
+                html.append("  if(confirm('Are you sure you want to delete all records?')) {");
+                html.append("    fetch('/clear', { method: 'POST' }).then(() => window.location.reload());");
+                html.append("  }");
+                html.append("}");
                 html.append("</script>");
 
-                // Display Table
                 html.append("<h3>Current Database</h3>");
                 html.append("<table><tr><th>Book Title</th><th>Author</th><th>Status</th></tr>");
                 for(Book book : libraryDB) {
@@ -93,7 +96,6 @@ public class LibraryApp {
         }
     }
 
-    // Handles receiving the uploaded file data
     static class UploadHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange t) throws IOException {
@@ -101,8 +103,6 @@ public class LibraryApp {
                 InputStream is = t.getRequestBody();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is));
                 String line;
-                
-                // Read the uploaded file line by line
                 while ((line = reader.readLine()) != null) {
                     if (line.trim().isEmpty()) continue;
                     String[] parts = line.split(",");
@@ -110,8 +110,22 @@ public class LibraryApp {
                         libraryDB.add(new Book(parts[0].trim(), parts[1].trim(), parts[2].trim()));
                     }
                 }
-                
                 String response = "Upload Successful";
+                t.sendResponseHeaders(200, response.length());
+                OutputStream os = t.getResponseBody();
+                os.write(response.getBytes());
+                os.close();
+            }
+        }
+    }
+
+    // New Handler that empties the database list
+    static class ClearHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange t) throws IOException {
+            if ("POST".equals(t.getRequestMethod())) {
+                libraryDB.clear(); // This command wipes the list clean
+                String response = "Database Cleared";
                 t.sendResponseHeaders(200, response.length());
                 OutputStream os = t.getResponseBody();
                 os.write(response.getBytes());
