@@ -21,12 +21,11 @@ class Book {
 }
 
 public class LibraryApp {
-    // In-memory Database
+
     static List<Book> libraryDB = new ArrayList<>();
 
     public static void main(String[] args) throws Exception {
-        // Start with one default book
-        libraryDB.add(new Book("DevOps Handbook", "Gene Kim", "Available"));
+
 
         HttpServer server = HttpServer.create(new InetSocketAddress(8081), 0);
         server.createContext("/", new DisplayHandler());
